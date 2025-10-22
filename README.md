@@ -1,1 +1,1 @@
-# lakehouse-data-platform
+# lakehouse-data-governance
