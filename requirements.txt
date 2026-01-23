@@ -1,0 +1,10 @@
+pyspark
+pandas
+pyyaml
+apache-airflow
+pyarrow
+fastparquet
+prometheus_client
+flake8
+black
+pytest

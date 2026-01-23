@@ -1,0 +1,34 @@
+version: 1
+
+dataset:
+  name: reddit_comments
+  zone: raw
+  location: data/sample/comments.json
+  format: json
+  multiline: true
+
+schema:
+  comment_id: data.id
+  post_id: data.link_id
+  parent_id: data.parent_id
+  body: data.body
+  author: data.author
+  created_utc: data.created_utc
+  score: data.score
+
+quality:
+  not_null:
+    - comment_id
+    - post_id
+    - created_utc
+
+target:
+  zone: curated
+  format: parquet
+  path: data/output/sample/comments
+  mode: append
+  partition_by:
+    - year
+    - month
+    - day
+    - post_id

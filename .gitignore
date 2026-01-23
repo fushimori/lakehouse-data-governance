@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+venv/
+data/
+
+# IDE
+.idea/
+.vscode/
+
+# Airflow
+airflow/airflow.db
+airflow/logs/
+
+# Pytest cache
+.pytest_cache/
+
+# Docker
+*.env
+*.log

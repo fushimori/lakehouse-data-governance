@@ -1,0 +1,14 @@
+version: 1
+
+domain: reddit
+
+owner: data-governance
+
+datasets:
+  - name: reddit_posts
+    contract: contracts/reddit_posts.yaml
+  - name: reddit_comments
+    contract: contracts/reddit_comments.yaml
+
+notes:
+
