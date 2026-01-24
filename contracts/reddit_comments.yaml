@@ -1,7 +1,8 @@
-version: 1
+version: 2.0.0
 
 dataset:
   name: reddit_comments
+  domain: reddit
   zone: raw
   location: data/sample/comments.json
   format: json
@@ -24,11 +25,15 @@ quality:
 
 target:
   zone: curated
-  format: parquet
-  path: data/output/sample/comments
-  mode: append
-  partition_by:
-    - year
-    - month
-    - day
-    - post_id
+  format: iceberg
+
+  catalog: local
+  database: reddit
+  table: comments
+
+  write_mode: upsert
+  primary_key: comment_id
+
+  partitioning:
+    - field: created_ts
+      transform: day

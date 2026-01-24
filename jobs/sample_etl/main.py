@@ -17,12 +17,10 @@ def run(contract_path: str):
 
     df = read_dataset(spark, contract)
 
-    # quality validation
     quality = contract.get("quality", {})
     not_null_fields = quality.get("not_null", [])
     df = validate_not_null(df, not_null_fields)
 
-    # dataset-specific cleanup (пример)
     if contract["dataset"]["name"] == "reddit_posts":
         df = clean_posts(df)
 

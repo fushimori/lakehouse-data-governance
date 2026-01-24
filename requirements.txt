@@ -8,3 +8,4 @@ prometheus_client
 flake8
 black
 pytest
+pyiceberg

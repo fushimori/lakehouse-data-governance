@@ -1,0 +1,52 @@
+# ==============================================
+# SPARK / ICEBERG ETL
+# ==============================================
+
+# Запуск ETL job через spark-submit
+PYTHONPATH=/home/fushimori/projects/lakehouse-data-platform \
+  spark-submit \
+  --jars scripts/iceberg-spark-runtime-4.0_2.13-1.10.1.jar \
+  jobs/sample_etl/main.py \
+  --contract contracts/reddit_comments.yaml
+
+# Пример пути к локальному warehouse (для конфигурации ETL)
+# data/warehouse/reddit/comments/
+
+# Для очистки локального Iceberg хранилища (dev / тест)
+rm -rf data/warehouse/reddit/comments/*
+
+# ==============================================
+# DATAHUB / DOCKER
+# ==============================================
+
+# Вариант с клонированием репозитория (необязательно)
+git clone https://github.com/datahub-project/datahub.git
+cd datahub
+docker-compose -f docker/docker-compose.yml up
+
+# Вариант с официальным Docker образом (без клона)
+# Полный стек: UI + REST API + Kafka + MySQL + Elasticsearch
+docker run -p 9002:9002 -p 8080:8080 -p 9092:9092 \
+  -e DATAHUB_GMS_HOST=0.0.0.0 \
+  datahub/datahub-full:latest
+
+# Минимальный вариант: только UI + REST API
+docker run -p 9002:9002 -p 8080:8080 datahub/datahub:latest
+
+# ==============================================
+# DATAHUB INGESTION (Iceberg → DataHub)
+# ==============================================
+
+# Пример ручного запуска ingestion
+python -m datahub.ingestion.run \
+  --source iceberg \
+  --source-config '{
+      "warehouse": "/home/fushimori/projects/lakehouse-data-platform/data/warehouse/",
+      "catalog": "hadoop"
+  }' \
+  --sink datahub-rest \
+  --sink-config '{
+      "server": "http://localhost:8080"
+  }'
+
+# Позже это можно будет триггерить через Airflow DAG

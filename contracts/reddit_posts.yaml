@@ -1,7 +1,8 @@
-version: 1
+version: 2.0.0
 
 dataset:
   name: reddit_posts
+  domain: reddit
   zone: raw
   location: data/sample/posts.json
   format: json
@@ -9,28 +10,30 @@ dataset:
 
 schema:
   post_id: data.id
-  subreddit: data.subreddit
   title: data.title
-  selftext: data.selftext
+  body: data.selftext
   author: data.author
-  created_utc: data.created_utc
-  num_comments: data.num_comments
-  score: data.score
+  subreddit: data.subreddit
   flair: data.link_flair_text
+  created_utc: data.created_utc
+  score: data.score
 
 quality:
   not_null:
     - post_id
-    - title
     - created_utc
 
 target:
   zone: curated
-  format: parquet
-  path: data/output/sample/posts
-  mode: append
-  partition_by:
-    - year
-    - month
-    - day
-    - subreddit
+  format: iceberg
+
+  catalog: local
+  database: reddit
+  table: posts
+
+  write_mode: upsert
+  primary_key: post_id
+
+  partitioning:
+    - field: created_ts
+      transform: day
