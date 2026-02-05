@@ -6,16 +6,15 @@ def create_spark_session(app_name="DataGovernanceETL"):
     return (
         SparkSession.builder
         .appName(app_name)
-        # Iceberg extensions
         .config(
             "spark.sql.extensions",
             "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
         )
-        # Local Hadoop catalog
-        .config("spark.sql.catalog.local", "org.apache.iceberg.spark.SparkCatalog")
-        .config("spark.sql.catalog.local.type", "hadoop")
-        .config("spark.sql.catalog.local.warehouse", "data/warehouse")
-        # Spark tuning
+        .config("spark.sql.catalog.rest", "org.apache.iceberg.spark.SparkCatalog")
+        .config("spark.sql.catalog.rest.catalog-impl", "org.apache.iceberg.rest.RESTCatalog")
+        .config("spark.sql.catalog.rest.uri", "http://localhost:8181")
+        .config("spark.sql.catalog.rest.io-impl", "org.apache.iceberg.hadoop.HadoopFileIO")
+        .config("spark.sql.catalog.rest.write.format.default", "parquet")
         .config("spark.sql.shuffle.partitions", 200)
         .config("spark.sql.adaptive.enabled", "true")
         .getOrCreate()

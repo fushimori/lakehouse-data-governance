@@ -1,5 +1,4 @@
 version: 2.0.0
-
 dataset:
   name: reddit_comments
   domain: reddit
@@ -7,33 +6,29 @@ dataset:
   location: data/sample/comments.json
   format: json
   multiline: true
-
 schema:
-  comment_id: data.id
-  post_id: data.link_id
-  parent_id: data.parent_id
-  body: data.body
   author: data.author
+  body: data.body
+  comment_id: data.id
   created_utc: data.created_utc
+  parent_id: data.parent_id
+  post_id: data.link_id
   score: data.score
-
 quality:
   not_null:
-    - comment_id
-    - post_id
-    - created_utc
-
+  - comment_id
+  - post_id
+  - created_utc
 target:
   zone: curated
   format: iceberg
-
-  catalog: local
+  catalog: rest
   database: reddit
   table: comments
-
   write_mode: upsert
   primary_key: comment_id
-
   partitioning:
-    - field: created_ts
-      transform: day
+  - field: created_ts
+    transform: day
+orchestration:
+  schedule: '*/5 * * * *'

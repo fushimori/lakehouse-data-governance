@@ -1,7 +1,8 @@
-pyspark
+pyspark==3.5.4
 pandas
 pyyaml
-apache-airflow
+apache-airflow>=3.0
+apache-airflow-providers-standard
 pyarrow
 fastparquet
 prometheus_client
@@ -9,3 +10,8 @@ flake8
 black
 pytest
 pyiceberg
+acryl-datahub
+fastapi
+uvicorn
+streamlit
+requests

@@ -27,7 +27,7 @@ target:
   zone: curated
   format: iceberg
 
-  catalog: local
+  catalog: rest
   database: reddit
   table: posts
 
@@ -37,3 +37,6 @@ target:
   partitioning:
     - field: created_ts
       transform: day
+
+orchestration:
+  schedule: "0 5 * * *" 

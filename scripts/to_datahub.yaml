@@ -1,0 +1,16 @@
+source:
+  type: iceberg
+  config:
+    env: dev
+    processing_threads: 1
+    catalog:
+      rest:
+        type: rest
+        uri: "http://localhost:8181" 
+    profiling:
+      enabled: false
+
+sink:
+  type: datahub-rest
+  config:
+    server: "http://localhost:8080"
