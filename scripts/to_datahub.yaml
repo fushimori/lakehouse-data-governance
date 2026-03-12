@@ -1,7 +1,7 @@
 source:
   type: iceberg
   config:
-    env: dev
+    env: PROD
     processing_threads: 1
     catalog:
       rest:

@@ -8,6 +8,7 @@ from etl.transform import (
     add_time_columns
 )
 from etl.load import write_target
+from etl.lineage import emit_openlineage
 
 
 def run(contract_path: str):
@@ -27,6 +28,8 @@ def run(contract_path: str):
     df = add_time_columns(df)
 
     write_target(df, contract)
+
+    emit_openlineage(contract)
 
     spark.stop()
 

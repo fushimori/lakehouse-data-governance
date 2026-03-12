@@ -4,7 +4,7 @@ from services.api_client import APIClient
 
 def build_contract_form(contract_data=None, contract_name=None):
     is_edit = contract_data is not None
-    
+
     if contract_data:
         dataset = contract_data.get("dataset", {})
         schema = contract_data.get("schema", {})
@@ -194,21 +194,88 @@ def show():
                         st.rerun()
 
     with tab2:
-        with st.form("create_contract_form"):
-            form_data = build_contract_form()
-            submitted = st.form_submit_button("Создать контракт", type="primary")
+        st.subheader("Создать контракт")
+        create_mode = st.radio(
+            "Режим ввода",
+            ["Форма", "Raw YAML"],
+            horizontal=True,
+            key="create_contract_mode",
+            help="Форма — по полям, Raw YAML — полный текст контракта вручную",
+        )
 
-            if submitted:
-                if not form_data["name"] or not form_data["dataset_name"] or not form_data["location"] or not form_data["table_name"] or not form_data["database"]:
-                    st.error("Заполните обязательные поля (*)")
-                else:
-                    contract = build_contract_dict(form_data)
-                    result = APIClient.create_contract(form_data["name"], contract)
-                    if result.get("status") == "created":
-                        st.success(f"✅ Контракт '{form_data['name']}' создан! DAG будет автоматически создан в Airflow.")
-                        st.rerun()
+        if create_mode == "Форма":
+            with st.form("create_contract_form"):
+                form_data = build_contract_form()
+                submitted = st.form_submit_button("Создать контракт", type="primary")
+
+                if submitted:
+                    if not form_data["name"] or not form_data["dataset_name"] or not form_data["location"] or not form_data["table_name"] or not form_data["database"]:
+                        st.error("Заполните обязательные поля (*)")
                     else:
-                        st.error(f"Ошибка: {result.get('error', 'Неизвестная ошибка')}")
+                        contract = build_contract_dict(form_data)
+                        result = APIClient.create_contract(form_data["name"], contract)
+                        if result.get("status") == "created":
+                            st.success(f"✅ Контракт '{form_data['name']}' создан! DAG будет автоматически создан в Airflow.")
+                            st.rerun()
+                        else:
+                            st.error(f"Ошибка: {result.get('error', 'Неизвестная ошибка')}")
+        else:
+            # Полный YAML‑контракт от руки
+            default_yaml = """version: 2.0.0
+dataset:
+  name: my_dataset
+  domain: my_domain
+  zone: raw
+  location: data/sample/file.json
+  format: json
+  multiline: true
+schema:
+  field1: data.field1
+  field2: data.field2
+quality:
+  not_null:
+    - field1
+target:
+  zone: curated
+  format: iceberg
+  catalog: rest
+  database: mydb
+  table: mytable
+  write_mode: upsert
+  primary_key: field1
+  partitioning:
+    - field: created_ts
+      transform: day
+orchestration:
+  schedule: "0 1 * * *"
+"""
+            with st.form("create_contract_raw_form"):
+                name = st.text_input("Имя контракта (имя файла без .yaml) *", value="")
+                yaml_text = st.text_area(
+                    "Текст контракта (YAML)",
+                    value=default_yaml,
+                    height=350,
+                    help="Полный текст дата‑контракта. Можно добавить регламенты, SLA, backlog и т.д.",
+                )
+                submitted = st.form_submit_button("Создать контракт (YAML)", type="primary")
+
+                if submitted:
+                    if not name.strip():
+                        st.error("Укажите имя контракта (имя файла).")
+                    else:
+                        try:
+                            contract = yaml.safe_load(yaml_text) or {}
+                            if not isinstance(contract, dict):
+                                raise ValueError("Контракт должен быть YAML‑объектом (map).")
+                        except Exception as e:
+                            st.error(f"Ошибка парсинга YAML: {e}")
+                        else:
+                            result = APIClient.create_contract(name.strip(), contract)
+                            if result.get("status") == "created":
+                                st.success(f"✅ Контракт '{name.strip()}' создан! DAG будет автоматически создан в Airflow.")
+                                st.rerun()
+                            else:
+                                st.error(f"Ошибка: {result.get('error', 'Неизвестная ошибка')}")
 
     with tab3:
         contracts = APIClient.get_contracts()
@@ -221,19 +288,52 @@ def show():
             if selected_contract:
                 contract_data = APIClient.get_contract(selected_contract)
                 
-                with st.form("edit_contract_form"):
-                    form_data = build_contract_form(contract_data, selected_contract)
-                    submitted = st.form_submit_button("Сохранить изменения", type="primary")
+                edit_mode = st.radio(
+                    "Режим редактирования",
+                    ["Форма", "Raw YAML"],
+                    horizontal=True,
+                    key="edit_contract_mode",
+                )
 
-                    if submitted:
-                        if not form_data["dataset_name"] or not form_data["location"] or not form_data["table_name"] or not form_data["database"]:
-                            st.error("Заполните обязательные поля (*)")
-                        else:
-                            contract = build_contract_dict(form_data)
-                            result = APIClient.update_contract(selected_contract, contract)
-                            if result.get("status") == "updated":
-                                st.success(f"✅ Контракт '{selected_contract}' обновлен! DAG будет автоматически обновлен в Airflow.")
-                                st.session_state.edit_contract = None
-                                st.rerun()
+                if edit_mode == "Форма":
+                    with st.form("edit_contract_form"):
+                        form_data = build_contract_form(contract_data, selected_contract)
+                        submitted = st.form_submit_button("Сохранить изменения", type="primary")
+
+                        if submitted:
+                            if not form_data["dataset_name"] or not form_data["location"] or not form_data["table_name"] or not form_data["database"]:
+                                st.error("Заполните обязательные поля (*)")
                             else:
-                                st.error(f"Ошибка: {result.get('error', 'Неизвестная ошибка')}")
+                                contract = build_contract_dict(form_data)
+                                result = APIClient.update_contract(selected_contract, contract)
+                                if result.get("status") == "updated":
+                                    st.success(f"✅ Контракт '{selected_contract}' обновлен! DAG будет автоматически обновлен в Airflow.")
+                                    st.session_state.edit_contract = None
+                                    st.rerun()
+                                else:
+                                    st.error(f"Ошибка: {result.get('error', 'Неизвестная ошибка')}")
+                else:
+                    with st.form("edit_contract_raw_form"):
+                        yaml_text = st.text_area(
+                            "Текст контракта (YAML)",
+                            value=yaml.dump(contract_data, default_flow_style=False, sort_keys=False),
+                            height=350,
+                            help="Полный текст дата‑контракта. Здесь можно редактировать любые поля вручную.",
+                        )
+                        submitted = st.form_submit_button("Сохранить изменения (YAML)", type="primary")
+
+                        if submitted:
+                            try:
+                                contract = yaml.safe_load(yaml_text) or {}
+                                if not isinstance(contract, dict):
+                                    raise ValueError("Контракт должен быть YAML‑объектом (map).")
+                            except Exception as e:
+                                st.error(f"Ошибка парсинга YAML: {e}")
+                            else:
+                                result = APIClient.update_contract(selected_contract, contract)
+                                if result.get("status") == "updated":
+                                    st.success(f"✅ Контракт '{selected_contract}' обновлен! DAG будет автоматически обновлен в Airflow.")
+                                    st.session_state.edit_contract = None
+                                    st.rerun()
+                                else:
+                                    st.error(f"Ошибка: {result.get('error', 'Неизвестная ошибка')}")

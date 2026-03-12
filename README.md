@@ -48,5 +48,5 @@ bash scripts/stop_all.sh
 2. Airflow автоматически создаст DAG (до 30 секунд)
 3. DAG появится в Airflow UI
 4. Запусти через Streamlit (Jobs) или вручную в Airflow UI
-5. DAG выполняет: `run_etl` (Spark ETL) → `run_datahub_ingest` (синхронизация с DataHub)
+5. DAG выполняет: `run_etl` (Spark ETL + OpenLineage) → `run_datahub_ingest` (синхронизация Iceberg с DataHub). Lineage эмитится из ETL в DataHub через OpenLineage API.
 

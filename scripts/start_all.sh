@@ -76,6 +76,26 @@ else
 fi
 echo ""
 
+echo "2️⃣  Запуск DataHub..."
+if check_port 8080; then
+    if command -v datahub >/dev/null 2>&1; then
+        echo "   Запускаю DataHub (datahub docker quickstart)..."
+        datahub docker quickstart > "$PROJECT_ROOT/datahub.log" 2>&1 &
+        DATAHUB_PID=$!
+        echo "   PID: $DATAHUB_PID"
+        sleep 10
+        wait_for_service "http://localhost:8080/health" "DataHub GMS" 90
+        echo -e "   ${GREEN}✓ DataHub запущен${NC}"
+        echo "   UI: http://localhost:9002 (datahub/datahub)"
+        [ -n "$DATAHUB_PID" ] && echo "$DATAHUB_PID" > "$PROJECT_ROOT/.datahub.pid" 2>/dev/null || true
+    else
+        echo -e "   ${YELLOW}⚠ datahub CLI не найден. Запусти вручную: datahub docker quickstart${NC}"
+    fi
+else
+    echo -e "   ${YELLOW}⚠ DataHub уже запущен (порт 8080)${NC}"
+fi
+echo ""
+
 echo "3️⃣  Запуск Airflow..."
 if check_port 8070; then
     if ! command -v airflow >/dev/null 2>&1; then
@@ -138,6 +158,7 @@ echo ""
 [ -n "$AIRFLOW_PID" ] && echo "$AIRFLOW_PID" > "$PROJECT_ROOT/.airflow.pid" 2>/dev/null || true
 [ -n "$BACKEND_PID" ] && echo "$BACKEND_PID" > "$PROJECT_ROOT/.backend.pid" 2>/dev/null || true
 [ -n "$FRONTEND_PID" ] && echo "$FRONTEND_PID" > "$PROJECT_ROOT/.frontend.pid" 2>/dev/null || true
+[ -n "$DATAHUB_PID" ] && echo "$DATAHUB_PID" > "$PROJECT_ROOT/.datahub.pid" 2>/dev/null || true
 
 echo "=========================================="
 echo -e "${GREEN}✅ Все сервисы запущены!${NC}"

@@ -61,6 +61,20 @@ fi
 
 echo ""
 
+if command -v datahub >/dev/null 2>&1; then
+    echo "Остановка DataHub..."
+    datahub docker quickstart --stop 2>/dev/null || true
+fi
+
+if [ -f "$PROJECT_ROOT/.datahub.pid" ]; then
+    DATAHUB_PID=$(cat "$PROJECT_ROOT/.datahub.pid")
+    if ps -p "$DATAHUB_PID" > /dev/null 2>&1; then
+        echo "Остановка процесса DataHub CLI (PID: $DATAHUB_PID)..."
+        kill "$DATAHUB_PID" 2>/dev/null || true
+        rm "$PROJECT_ROOT/.datahub.pid"
+    fi
+fi
+
 if command -v docker >/dev/null 2>&1; then
     if docker ps --format '{{.Names}}' | grep -q '^iceberg-rest$'; then
         echo "Остановка Docker контейнера iceberg-rest..."

@@ -15,6 +15,8 @@ def _run_etl(contract_path: str, **kwargs):
     env["PROJECT_ROOT"] = str(PROJECT_ROOT)
     env["PYTHONPATH"] = f"{PROJECT_ROOT}:{env.get('PYTHONPATH', '')}"
     env["PATH"] = f"{PROJECT_ROOT / 'venv' / 'bin'}:{env.get('PATH', '')}"
+    env.setdefault("DATAHUB_GMS_URL", "http://localhost:8080")
+    env.setdefault("DATAHUB_OPENLINEAGE_ENV", "PROD")
     result = subprocess.run(
         ["bash", str(PROJECT_ROOT / "scripts" / "run_etl.sh"), contract_path],
         cwd=str(PROJECT_ROOT),

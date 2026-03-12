@@ -31,4 +31,4 @@ target:
   - field: created_ts
     transform: day
 orchestration:
-  schedule: '*/5 * * * *'
+  schedule: 0 1 * * *

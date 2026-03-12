@@ -8,6 +8,10 @@ cd "$PROJECT_ROOT"
 
 export PATH="$PROJECT_ROOT/venv/bin:$PATH"
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
+export DATAHUB_GMS_URL="${DATAHUB_GMS_URL:-http://localhost:8080}"
+export DATAHUB_OPENLINEAGE_ENV="${DATAHUB_OPENLINEAGE_ENV:-PROD}"
+# false=сначала OpenLineage (только table lineage), true=сразу SDK (table+column lineage)
+export OPENLINEAGE_USE_SDK_ONLY="${OPENLINEAGE_USE_SDK_ONLY:-true}"
 
 spark-submit \
   --master local[*] \
