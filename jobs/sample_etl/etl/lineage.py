@@ -1,13 +1,3 @@
-"""
-Эмиссия lineage в DataHub через OpenLineage API или SDK fallback.
-
-Вызывается после write_target в main.py.
-- OpenLineage: COMPLETE-событие с inputs, outputs, column lineage (требует processing_engine)
-- SDK fallback: upsert upstream-датасет + add_lineage с маппингом из контракта
-
-Всё берётся из contract — platform, имена, schema.
-"""
-
 import os
 import sys
 import time
@@ -16,13 +6,10 @@ from datetime import datetime, timezone
 
 import requests
 
-# DataHub: namespace -> platform, name -> dataset identifier
-# Iceberg ingest: urn:li:dataset:(..., {db}.{table}, PROD)
 OUTPUT_NAMESPACE = "iceberg"
 
 
 def _source_platform(contract: dict) -> str:
-    """Platform источника из contract: dataset.platform или по location (s3://, gs://)."""
     platform = contract.get("dataset", {}).get("platform")
     if platform:
         return platform
@@ -35,14 +22,12 @@ def _source_platform(contract: dict) -> str:
 
 
 def _output_name(contract: dict) -> str:
-    """Имя output датасета: {database}.{table} — формат Iceberg ingest в DataHub."""
     target = contract.get("target", {})
     db, table = target.get("database", ""), target.get("table", "")
     return f"{db}.{table}" if db and table else table
 
 
 def _build_column_lineage(contract: dict, input_namespace: str) -> dict:
-    """OpenLineage columnLineage facet: {output_field: {inputFields: [...]}}."""
     schema = contract.get("schema", {})
     dataset_name = contract["dataset"]["name"]
     fields = {}
@@ -93,9 +78,6 @@ def _build_column_lineage_mapping(contract: dict) -> dict:
 
 
 def emit_openlineage(contract: dict, datahub_url: str | None = None) -> None:
-    """
-    Отправляет lineage в DataHub: сначала OpenLineage API, при 5xx — SDK fallback.
-    """
     url = datahub_url or os.getenv("DATAHUB_GMS_URL", "http://localhost:8080")
     dataset_name = contract["dataset"]["name"]
     output_name = _output_name(contract)
@@ -125,7 +107,6 @@ def emit_openlineage(contract: dict, datahub_url: str | None = None) -> None:
         if not column_lineage:
             column_lineage = None
 
-    # processing_engine — без него DataHub 500 "Unable to determine orchestrator"
     event = {
         "eventType": "COMPLETE",
         "eventTime": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
@@ -206,7 +187,6 @@ def emit_openlineage(contract: dict, datahub_url: str | None = None) -> None:
                 print(f"OpenLineage OK: {dataset_name} -> {output_name}", flush=True)
                 return
             last_error = f"{resp.status_code}: {resp.text[:500] if resp.text else ''}"
-            # 5xx — retry, 4xx — не retry
             if 400 <= resp.status_code < 500:
                 break
             if attempt < max_retries - 1:
@@ -216,7 +196,6 @@ def emit_openlineage(contract: dict, datahub_url: str | None = None) -> None:
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)
 
-    # Fallback: OpenLineage 500 → SDK
     _emit_lineage_sdk_fallback(contract, url)
 
 def _emit_lineage_sdk_fallback(contract: dict, datahub_url: str) -> None:
@@ -237,7 +216,6 @@ def _emit_lineage_sdk_fallback(contract: dict, datahub_url: str) -> None:
         client = DataHubClient(server=datahub_url)
         entity_client = EntityClient(client)
 
-        # Upstream-датасет со schema (для column lineage)
         schema = contract.get("schema", {})
         source_fields = [(path, "string") for path in schema.values()] if schema else None
         source_ds = Dataset(
@@ -249,7 +227,6 @@ def _emit_lineage_sdk_fallback(contract: dict, datahub_url: str) -> None:
         )
         entity_client.upsert(source_ds)
 
-        # Lineage с column mapping из контракта (output_col <- input_path)
         cll = _build_column_lineage_mapping(contract)
         lineage_client = LineageClient(client)
         lineage_client.add_lineage(
