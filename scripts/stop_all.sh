@@ -39,6 +39,15 @@ if [ -f "$PROJECT_ROOT/.frontend.pid" ]; then
     fi
 fi
 
+if [ -f "$PROJECT_ROOT/.metrics_exporter.pid" ]; then
+    METRICS_EXPORTER_PID=$(cat "$PROJECT_ROOT/.metrics_exporter.pid")
+    if ps -p "$METRICS_EXPORTER_PID" > /dev/null 2>&1; then
+        echo "Остановка Metrics exporter (PID: $METRICS_EXPORTER_PID)..."
+        kill "$METRICS_EXPORTER_PID" 2>/dev/null || true
+    fi
+    rm -f "$PROJECT_ROOT/.metrics_exporter.pid"
+fi
+
 echo "Остановка процессов на портах..."
 
 if lsof -ti:8070 >/dev/null 2>&1; then
@@ -80,4 +89,19 @@ if command -v docker >/dev/null 2>&1; then
         echo "Остановка Docker контейнера iceberg-rest..."
         docker stop iceberg-rest >/dev/null 2>&1 || true
     fi
+    if docker ps --format '{{.Names}}' | grep -q '^starrocks-allin1$'; then
+        echo "Остановка Docker контейнера StarRocks (starrocks-allin1)..."
+        docker stop starrocks-allin1 >/dev/null 2>&1 || true
+    fi
+    if [ -f "$PROJECT_ROOT/monitor/docker-compose.yml" ]; then
+        echo "Остановка Monitoring stack (Prometheus/Grafana)..."
+        if docker compose version >/dev/null 2>&1; then
+            docker compose -f "$PROJECT_ROOT/monitor/docker-compose.yml" down >/dev/null 2>&1 || true
+        elif command -v docker-compose >/dev/null 2>&1; then
+            docker-compose -f "$PROJECT_ROOT/monitor/docker-compose.yml" down >/dev/null 2>&1 || true
+        fi
+    fi
 fi
+
+echo ""
+echo "✅ Остановка сервисов завершена"
